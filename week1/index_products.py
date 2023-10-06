@@ -5,111 +5,108 @@ from lxml import etree
 
 import click
 import glob
-from opensearchpy import OpenSearch
 from opensearchpy.helpers import bulk
 import logging
 
 from time import perf_counter
 import concurrent.futures
 
+from conn import connect_opensearch
 
+mappings = {
+    "productId": "productId/text()",
+    "sku": "sku/text()",
+    "name":  "name/text()",
+    "type": "type/text()",
+    "startDate": "startDate/text()",
+    "active": "active/text()",
+    "regularPrice": "regularPrice/text()",
+    "salePrice": "salePrice/text()",
+    "artistName": "artistName/text()",
+    "onSale": "onSale/text()",
+    "digital": "digital/text()",
+    "frequentlyPurchasedWith": "frequentlyPurchasedWith/*/text()",
+    "accessories": "accessories/*/text()",
+    "relatedProducts": "relatedProducts/*/text()",
+    "crossSell": "crossSell/text()",
+    "salesRankShortTerm": "salesRankShortTerm/text()",
+    "salesRankMediumTerm": "salesRankMediumTerm/text()",
+    "salesRankLongTerm": "salesRankLongTerm/text()",
+    "bestSellingRank": "bestSellingRank/text()",
+    "url": "url/text()",
+    "categoryPath": "categoryPath/*/name/text()",
+    "categoryPathIds": "categoryPath/*/id/text()",
+    "categoryLeaf": "categoryPath/category[last()]/id/text()",
+    "categoryPathCount": "count(categoryPath/*/name)",
+    "customerReviewCount": "customerReviewCount/text()",
+    "customerReviewAverage": "customerReviewAverage/text()",
+    "inStoreAvailability": "inStoreAvailability/text()",
+    "onlineAvailability": "onlineAvailability/text()",
+    "releaseDate": "releaseDate/text()",
+    "shippingCost": "shippingCost/text()",
+    "shortDescription": "shortDescrption/text()",
+    "shortDescriptionHtml": "shortDescriptionHtml/text()",
+    "class": "class/text()",
+    "classId": "classId/text()",
+    "subclass": "subclass/text()",
+    "subclassId": "subclassId/text()",
+    "department": "department/text()",
+    "departmentId": "departmentId/text()",
+    "bestBuyItemId": "bestBuyItemId/text()",
+    "description": "description/text()",
+    "manufacturer": "manufacturer/text()",
+    "modelNumber": "modelNumber/text()",
+    "image": "image/text()",
+    "condition": "condition/text()",
+    "inStorePickup": "inStorePickup/text()",
+    "homeDelivery": "homeDelivery/text()",
+    "quantityLimit": "quantityLimit/text()",
+    "color": "color/text()",
+    "depth": "depth/text()",
+    "height": "height/text()",
+    "weight": "weight/text()",
+    "shippingWeight": "shippingWeight/text()",
+    "width": "width/text()",
+    "longDescription": "longDescription/text()",
+    "longDescriptionHtml": "longDescriptionHtml/text()",
+    "features": "features/*/text()",
+}
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:%(message)s')
 
-# NOTE: this is not a complete list of fields.  If you wish to add more, put in the appropriate XPath expression.
-#TODO: is there a way to do this using XPath/XSL Functions so that we don't have to maintain a big list?
-mappings =  [
-            "productId/text()", "productId",
-            "sku/text()", "sku",
-            "name/text()", "name",
-            "type/text()", "type",
-            "startDate/text()", "startDate",
-            "active/text()", "active",
-            "regularPrice/text()", "regularPrice",
-            "salePrice/text()", "salePrice",
-            "artistName/text()", "artistName",
-            "onSale/text()", "onSale",
-            "digital/text()", "digital",
-            "frequentlyPurchasedWith/*/text()", "frequentlyPurchasedWith",# Note the match all here to get the subfields
-            "accessories/*/text()", "accessories",# Note the match all here to get the subfields
-            "relatedProducts/*/text()", "relatedProducts",# Note the match all here to get the subfields
-            "crossSell/text()", "crossSell",
-            "salesRankShortTerm/text()", "salesRankShortTerm",
-            "salesRankMediumTerm/text()", "salesRankMediumTerm",
-            "salesRankLongTerm/text()", "salesRankLongTerm",
-            "bestSellingRank/text()", "bestSellingRank",
-            "url/text()", "url",
-            "categoryPath/*/name/text()", "categoryPath", # Note the match all here to get the subfields
-            "categoryPath/*/id/text()", "categoryPathIds", # Note the match all here to get the subfields
-            "categoryPath/category[last()]/id/text()", "categoryLeaf",
-            "count(categoryPath/*/name)", "categoryPathCount",
-            "customerReviewCount/text()", "customerReviewCount",
-            "customerReviewAverage/text()", "customerReviewAverage",
-            "inStoreAvailability/text()", "inStoreAvailability",
-            "onlineAvailability/text()", "onlineAvailability",
-            "releaseDate/text()", "releaseDate",
-            "shippingCost/text()", "shippingCost",
-            "shortDescription/text()", "shortDescription",
-            "shortDescriptionHtml/text()", "shortDescriptionHtml",
-            "class/text()", "class",
-            "classId/text()", "classId",
-            "subclass/text()", "subclass",
-            "subclassId/text()", "subclassId",
-            "department/text()", "department",
-            "departmentId/text()", "departmentId",
-            "bestBuyItemId/text()", "bestBuyItemId",
-            "description/text()", "description",
-            "manufacturer/text()", "manufacturer",
-            "modelNumber/text()", "modelNumber",
-            "image/text()", "image",
-            "condition/text()", "condition",
-            "inStorePickup/text()", "inStorePickup",
-            "homeDelivery/text()", "homeDelivery",
-            "quantityLimit/text()", "quantityLimit",
-            "color/text()", "color",
-            "depth/text()", "depth",
-            "height/text()", "height",
-            "weight/text()", "weight",
-            "shippingWeight/text()", "shippingWeight",
-            "width/text()", "width",
-            "longDescription/text()", "longDescription",
-            "longDescriptionHtml/text()", "longDescriptionHtml",
-            "features/*/text()", "features" # Note the match all here to get the subfields
-
-        ]
-
-def get_opensearch():
-    host = 'localhost'
-    port = 9200
-    auth = ('admin', 'admin')
-    #### Step 2.a: Create a connection to OpenSearch
-    client = None
+def get_opensearch(host='127.0.0.1',port=9200, auth=('OS_NAME','OS_PASSWORD')):
+    client = connect_opensearch(host, port, auth)
     return client
-
 
 def index_file(file, index_name):
     docs_indexed = 0
-    client = get_opensearch()
     logger.info(f'Processing file : {file}')
     tree = etree.parse(file)
     root = tree.getroot()
-    children = root.findall("./product")
+    products = root.findall("./product")
     docs = []
-    for child in children:
+    for product in products:
         doc = {}
-        for idx in range(0, len(mappings), 2):
-            xpath_expr = mappings[idx]
-            key = mappings[idx + 1]
-            doc[key] = child.xpath(xpath_expr)
-        #print(doc)
-        if 'productId' not in doc or len(doc['productId']) == 0:
-            continue
-        #### Step 2.b: Create a valid OpenSearch Doc and bulk index 2000 docs at a time
-        the_doc = None
-        docs.append(the_doc)
+        for product_field in mappings:
+            xpath_expr = mappings[product_field]
+            result = product.xpath(xpath_expr)
+            if '*' in xpath_expr:
+                doc[product_field] = result
+            else:
+                joined = ''.join(result)
+                doc[product_field] = joined if joined else None
 
+        if 'productId' not in doc or not doc['productId']:
+            continue
+
+        docs.append({'_index': index_name, '_id': doc['productId'], 'id': doc['productId'], '_source': doc})
+    
+    for i in range(0, len(docs), 2000):
+        docs_subset = docs[i:i+2000]
+        bulk(client, docs_subset)
+    docs_indexed = len(docs)
     return docs_indexed
 
 @click.command()
@@ -117,8 +114,9 @@ def index_file(file, index_name):
 @click.option('--index_name', '-i', default="bbuy_products", help="The name of the index to write to")
 @click.option('--workers', '-w', default=8, help="The number of workers to use to process files")
 def main(source_dir: str, index_name: str, workers: int):
-
-    files = glob.glob(source_dir + "/*.xml")
+    global client
+    client = get_opensearch()
+    files = glob.glob(source_dir + '/*.xml')
     docs_indexed = 0
     start = perf_counter()
     with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:

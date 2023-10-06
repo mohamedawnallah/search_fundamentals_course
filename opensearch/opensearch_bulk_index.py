@@ -37,7 +37,7 @@ client.indices.create(index_name, body=index_body)
 # Add our sample document to the index.
 docs = [
     {
-        "id": "doc_a",
+        "_id": "doc_a",
         '_index': index_name,
         "title": "Fox and Hounds",
         "body": "The quick red fox jumped over the lazy brown dogs.",
@@ -45,7 +45,7 @@ docs = [
         "in_stock": True,
         "category": "childrens"},
     {
-        "id": "doc_b",
+        "_id": "doc_b",
         '_index': index_name,
         "title": "Fox wins championship",
         "body": "Wearing all red, the Fox jumped out to a lead in the race over the Dog.",
@@ -53,7 +53,7 @@ docs = [
         "in_stock": True,
         "category": "sports"},
     {
-        "id": "doc_c",
+        "_id": "doc_c",
         '_index': index_name,
         "title": "Lead Paint Removal",
         "body": "All lead must be removed from the brown and red paint.",
@@ -61,7 +61,7 @@ docs = [
         "in_stock": False,
         "category": "instructional"},
     {
-        "id": "doc_d",
+        "_id": "doc_d",
         '_index': index_name,
         "title": "The Three Little Pigs Revisted",
         "price": "3.51",

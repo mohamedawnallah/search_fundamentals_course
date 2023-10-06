@@ -7,27 +7,14 @@ from opensearchpy.helpers import bulk
 import logging
 import time
 
+from conn import connect_opensearch
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:%(message)s')
 
 def get_opensearch():
-
-    host = 'localhost'
-    port = 9200
-    auth = ('admin', 'admin')
-    client = OpenSearch(
-        hosts=[{'host': host, 'port': port}],
-        http_compress=True,  # enables gzip compression for request bodies
-        http_auth=auth,
-        # client_cert = client_cert_path,
-        # client_key = client_key_path,
-        use_ssl=True,
-        verify_certs=False,
-        ssl_assert_hostname=False,
-        ssl_show_warn=False,
-        #ca_certs=ca_certs_path
-    )
+    client = connect_opensearch()
     return client
 
 @click.command()
@@ -36,17 +23,19 @@ def get_opensearch():
 def main(source_file: str, index_name: str):
     client = get_opensearch()
     ds = pd.read_csv(source_file)
-    #print(ds.columns)
-    ds['click_time'] = pd.to_datetime(ds['click_time'])
-    ds['query_time'] = pd.to_datetime(ds['query_time'])
-    #print(ds.dtypes)
+
+    ds['click_time'] = pd.to_datetime(ds['click_time'], format="ISO8601")
+    ds['query_time'] = pd.to_datetime(ds['query_time'], format="ISO8601")
+
+    ds['category'].fillna(value=-1, inplace=True)
+
     docs = []
     tic = time.perf_counter()
     for idx, row in ds.iterrows():
         doc = {}
         for col in ds.columns:
-            doc[col] = row[col]
-        docs.append({'_index': index_name , '_source': doc})
+            doc[col] = None if col == 'category' and row[col] == -1 else row[col]
+        docs.append({'_index': index_name , '_id': doc['user'], '_source': doc})
         if idx % 1000 == 0:
             bulk(client, docs, request_timeout=60)
             logger.info(f'{idx} documents indexed')

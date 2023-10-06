@@ -30,7 +30,7 @@ try:
 except:
     print("search_fun_test doesn't exist, that's OK")
 
-# Create an index with non-default settings.
+# # Create an index with non-default settings.
 index_name = 'search_fun_revisited'
 index_body = {
     'settings': {
@@ -44,7 +44,7 @@ index_body = {
 
 client.indices.create(index_name, body=index_body)
 
-# Add our sample document to the index.
+# # Add our sample document to the index.
 docs = [
     {
         "id": "doc_a",
@@ -86,14 +86,14 @@ for doc in docs:
         refresh=True
     )
 
-# Verify they are in:
-print(client.cat.count(index_name, params={"v": "true"}))
+# # Verify they are in:
+# print(client.cat.count(index_name, params={"v": "true"}))
 
-# Get the index mappings
+# # Get the index mappings
 
-print(client.indices.get_mapping(index_name))
+# print(client.indices.get_mapping(index_name))
 
-# Create a new index, this time with different mappings
+# # Create a new index, this time with different mappings
 index_name = 'search_fun_revisited_custom_mappings'
 index_body = {
     'settings': {
@@ -145,164 +145,164 @@ client.search(
     index=index_name
 )
 
-# try a phrase query
-q = 'fox dog'
-query = {
-    'size': 5,
-    'query': {
-        'match_phrase': {
-            'body': {"query": q}
-        }
-    }
-}
+# # try a phrase query
+# q = 'fox dog'
+# query = {
+#     'size': 5,
+#     'query': {
+#         'match_phrase': {
+#             'body': {"query": q}
+#         }
+#     }
+# }
 
-client.search(
-    body=query,
-    index=index_name
-)
+# client.search(
+#     body=query,
+#     index=index_name
+# )
 
-# try a phrase query with slop
-q = 'fox dog'
-query = {
-    'size': 5,
-    'query': {
-        'match_phrase': {
-            'body': {"query": q, "slop": 10}
-        }
-    }
-}
+# # try a phrase query with slop
+# q = 'fox dog'
+# query = {
+#     'size': 5,
+#     'query': {
+#         'match_phrase': {
+#             'body': {"query": q, "slop": 10}
+#         }
+#     }
+# }
 
-client.search(
-    body=query,
-    index=index_name
-)
+# client.search(
+#     body=query,
+#     index=index_name
+# )
 
-# try a match all query with a filter and a price factor
-query = {
-    'size': 5,
-    'query': {
-        "function_score": {
-            "query": {
-                "bool": {
-                    "must": [
-                        {"match_all": {}}
-                    ],
-                    "filter": [
-                        {"term": {"category": "childrens"}}
-                    ]
-                }
-            },
-            "field_value_factor": {
-                "field": "price",
-                "missing": 1
-            }
-        }
-    }
-}
+# # try a match all query with a filter and a price factor
+# query = {
+#     'size': 5,
+#     'query': {
+#         "function_score": {
+#             "query": {
+#                 "bool": {
+#                     "must": [
+#                         {"match_all": {}}
+#                     ],
+#                     "filter": [
+#                         {"term": {"category": "childrens"}}
+#                     ]
+#                 }
+#             },
+#             "field_value_factor": {
+#                 "field": "price",
+#                 "missing": 1
+#             }
+#         }
+#     }
+# }
 
-client.search(
-    body=query,
-    index=index_name
-)
+# client.search(
+#     body=query,
+#     index=index_name
+# )
 
-###################
-# Aggregations
+# ###################
+# # Aggregations
 
-query = {
-    'size': 0,
-    'query': {
-        "match_all": {}
-    },
-    'aggs': {
-        "category": {
-            "terms": {
-                "field": "category",
-                "size": 10,
-                "missing": "N/A",
-                "min_doc_count": 0
-            }
-        }
-    }
-}
+# query = {
+#     'size': 0,
+#     'query': {
+#         "match_all": {}
+#     },
+#     'aggs': {
+#         "category": {
+#             "terms": {
+#                 "field": "category",
+#                 "size": 10,
+#                 "missing": "N/A",
+#                 "min_doc_count": 0
+#             }
+#         }
+#     }
+# }
 
-client.search(
-    body=query,
-    index=index_name
-)
+# client.search(
+#     body=query,
+#     index=index_name
+# )
 
-# Terms on price
-query = {
-    'size': 0,
-    'query': {
-        "match_all": {}
-    },
-    'aggs': {
-        "price": {
-            "terms": {
-                "field": "price",
-                "size": 10,
-                "min_doc_count": 0
-            }
-        }
-    }
-}
+# # Terms on price
+# query = {
+#     'size': 0,
+#     'query': {
+#         "match_all": {}
+#     },
+#     'aggs': {
+#         "price": {
+#             "terms": {
+#                 "field": "price",
+#                 "size": 10,
+#                 "min_doc_count": 0
+#             }
+#         }
+#     }
+# }
 
-client.search(
-    body=query,
-    index=index_name
-)
+# client.search(
+#     body=query,
+#     index=index_name
+# )
 
-# Range aggregation
-query = {
-    'size': 0,
-    'query': {
-        "match_all": {}
-    },
-    'aggs': {
-        "price": {
-            "range": {
-                "field": "price",
-                "ranges": [
-                    {
-                        "to": 5
-                    },
-                    {
-                        "from": 5,
-                        "to": 20
-                    },
-                    {
-                        "from": 20,
-                    }
-                ]
-            }
-        }
-    }
-}
+# # Range aggregation
+# query = {
+#     'size': 0,
+#     'query': {
+#         "match_all": {}
+#     },
+#     'aggs': {
+#         "price": {
+#             "range": {
+#                 "field": "price",
+#                 "ranges": [
+#                     {
+#                         "to": 5
+#                     },
+#                     {
+#                         "from": 5,
+#                         "to": 20
+#                     },
+#                     {
+#                         "from": 20,
+#                     }
+#                 ]
+#             }
+#         }
+#     }
+# }
 
-client.search(
-    body=query,
-    index=index_name
-)
+# client.search(
+#     body=query,
+#     index=index_name
+# )
 
-######################################
-#####
-#####  DANGER!!!!!!!!!!!
-#####
-######################################
-# if you want to delete the documents, but keep the index, run the following:
-for doc in docs:
-    doc_id = doc["id"]
-print("Indexing {}".format(doc_id))
-response = client.delete(
-    index=index_name,
-    id=doc_id,
-)
-print('\n\tResponse:')
-print(response)
+# ######################################
+# #####
+# #####  DANGER!!!!!!!!!!!
+# #####
+# ######################################
+# # if you want to delete the documents, but keep the index, run the following:
+# for doc in docs:
+#     doc_id = doc["id"]
+# print("Indexing {}".format(doc_id))
+# response = client.delete(
+#     index=index_name,
+#     id=doc_id,
+# )
+# print('\n\tResponse:')
+# print(response)
 
-# If at any time you want to start over, run this command to delete the index and then you can start from the toop
-# Delete the index.
-response = client.indices.delete(index=index_name)
+# # If at any time you want to start over, run this command to delete the index and then you can start from the toop
+# # Delete the index.
+# response = client.indices.delete(index=index_name)
 
-print('\nDeleting index:')
-print(response)
+# print('\nDeleting index:')
+# print(response)
